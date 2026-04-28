@@ -73,110 +73,45 @@ CSV Files ──► AWS S3 ──► Snowflake RAW ──► dbt Staging + Core 
               │               │                    │                    │
            🥉 BRONZE       🥉 BRONZE            🥈 SILVER           🥇 GOLD
 ```
+##  STAR SCHEMA DIAGRAM
+
+<img width="3989" height="2911" alt="star_schema" src="https://github.com/user-attachments/assets/34297cd9-17b8-45ec-8031-66e5c8b109a0" />
 
 ---
 
-## ❄️ Snowflake Schema Setup
+<div align="LEFT">
+  
+## ❄️ Snowflake Setup
 
-```sql
--- Run once before your first dbt run
-CREATE SCHEMA IF NOT EXISTS MOVIELENS.STAGING;
-CREATE SCHEMA IF NOT EXISTS MOVIELENS.ANALYTICS;
-CREATE SCHEMA IF NOT EXISTS MOVIELENS.SNAPSHOTS;
--- MOVIELENS.RAW already exists from data ingestion
-```
+Run all steps in a Snowflake Worksheet as `ACCOUNTADMIN`.
 
-| Schema | Layer | Contains |
-|--------|-------|----------|
-| `MOVIELENS.RAW` | 🥉 Bronze | Raw source tables loaded from S3 |
-| `MOVIELENS.STAGING` | 🥈 Silver | `src_*` staging views |
-| `MOVIELENS.ANALYTICS` | 🥈🥇 Silver + Gold | `dim_`, `fct_`, `bridge_`, `mart_` tables |
-| `MOVIELENS.SNAPSHOTS` | Optional | SCD2 snapshot history |
+1. **Create a role** for dbt transformations and grant it to `ACCOUNTADMIN`
+2. **Create a warehouse** and grant operate permissions to the role
+3. **Create a dbt service user** with the role as default and set `TYPE=LEGACY_SERVICE`
+4. **Create the database and schemas** for each layer of your pipeline
+5. **Grant permissions** on the database, all schemas, and future tables to the role
+6. **Create an external stage** pointing to your s3 bucket with the required credentials
+7. **Create your raw tables** in the RAW schema matching your source file structure
+8. **Load data** using `COPY INTO` for each table from the stage
 
 ---
 
-## 🌟 Star Schema Design
 
-```
+## 📊 Power BI Dashboard
 
-```
 
----
-
-## 📁 Project Structure
-<pre>
-movielens-end-to-end-data-pipeline/
-├── models/
-│   ├── bridge/
-│   │   └── bridge_movie_tags.sql
-│   ├── dim/
-│   │   ├── dim_genome_tags.sql
-│   │   ├── dim_movies.sql
-│   │   └── dim_users.sql
-│   ├── fct/
-│   │   └── fct_ratings.sql
-│   ├── mart/
-│   │   ├── mart_genre_summary.sql
-│   │   ├── mart_movie_releases.sql
-│   │   └── mart_top_movies.sql
-│   ├── staging/
-│   │   ├── sources.yml
-│   │   ├── src_genome_score.sql
-│   │   ├── src_genome_tags.sql
-│   │   ├── src_links.sql
-│   │   ├── src_movies.sql
-│   │   ├── src_ratings.sql
-│   │   └── src_tags.sql
-│   └── schema.yml
-├── snapshots/
-│   └── snap_movies.sql
-├── dbt_project.yml
-└── packages.yml
-</pre>
-```
 
 ---
 
-## 🔄 Key dbt Transformations
 
-| Transformation | Function | Model |
-|----------------|----------|-------|
-| Rename camelCase → snake_case | Column aliases | All `src_*` |
-| Unix int → timestamp | `TO_TIMESTAMP_LTZ()` | `src_ratings`, `src_tags` |
-| Extract release year | `REGEXP_SUBSTR()` | `dim_movies` |
-| Remove year from title | `REGEXP_REPLACE()` | `dim_movies` |
-| Split genres into array | `SPLIT(genres, '\|')` | `dim_movies` |
-| Explode array into rows | `LATERAL FLATTEN` | `mart_genre_summary` |
-| MD5 surrogate keys | `dbt_utils.generate_surrogate_key()` | All dim + fct |
-| Incremental load | `WHERE timestamp > MAX(timestamp)` | `fct_ratings` |
-| Behavioral user stats | `COUNT DISTINCT, AVG, MIN, MAX` | `dim_users` |
-
----
-
-## 🧪 Data Quality Tests
-
-Tests run via `dbt test` and defined in `schema.yml`:
-
-| Test | Column | Model |
-|------|--------|-------|
-| `unique` + `not_null` | All `_sk` surrogate keys | All dim + fct |
-| `not_null` | All FK columns | `fct_ratings`, `bridge_movie_tags` |
-| `accepted_values` (0.5–5.0) | `rating` | `fct_ratings` |
-| `relationships` → `dim_movies` | `movie_id` | `fct_ratings`, `bridge_movie_tags` |
-| `relationships` → `dim_users` | `user_id` | `fct_ratings` |
-| `relationships` → `dim_genome_tags` | `tag_id` | `bridge_movie_tags` |
-
-> The `relationships` test is the dbt equivalent of a foreign key constraint — Snowflake does not enforce FKs, so dbt tests fill that role.
-
----
-
+  
 ## 🚀 How to Run
 
 **Prerequisites:** Snowflake account with `MOVIELENS.RAW` loaded · dbt Core installed (`pip install dbt-snowflake`) · credentials in `~/.dbt/profiles.yml`
 
 ```bash
 # Clone the repo
-git clone https://github.com/YOUR_USERNAME/movielens-end-to-end-data-pipeline.git
+git clone https://github.com/AbdallahAhmed7/movielens-end-to-end-data-pipeline.git
 cd movielens-end-to-end-data-pipeline
 
 # Install packages
@@ -200,43 +135,40 @@ dbt docs generate && dbt docs serve
 dbt deps && dbt snapshot && dbt run && dbt test
 ```
 
----
 
-## 📊 Power BI Setup
 
-Connect to **`MOVIELENS.ANALYTICS`** and import:
+## 📁 Project Structure
 
-**Star schema tables** — create these relationships in Model view:
+```bash
+.
+├── models/
+│   ├── staging/        # Raw data 
+│   ├── dim/            # Dimension tables 
+│   ├── fct/            # Fact tables 
+│   ├── bridge/         # Bridge tables (handling many-to-many relationships)
+│   ├── mart/           # Final business-ready data models (Gold layer)
+│   ├── sources.yml     # Source definitions (raw data locations)
+│   └── schema.yml      # Tests, documentation, and model metadata
+│
+├── powerbi/            # Power BI dashboards and reports
+│
+├── dbt_project.yml     # dbt project configuration
+├── packages.yml        # dbt package dependencies
+├── README.md           # Project documentation
 ```
-fct_ratings [movie_id]        →→→  dim_movies [movie_id]
-fct_ratings [user_id]         →→→  dim_users [user_id]
-bridge_movie_tags [movie_id]  →→→  dim_movies [movie_id]
-bridge_movie_tags [tag_id]    →→→  dim_genome_tags [tag_id]
-```
 
-**Mart tables** — standalone, no relationships needed:
-
-| Mart | Power BI Visual |
-|------|----------------|
-| `mart_genre_summary` | Bar chart · Treemap |
-| `mart_movie_releases` | Line chart · Area chart |
-| `mart_top_movies` | Ranked table |
-
----
-
-## 📚 Resources
-
-- 📺 [Tutorial Video — Netflix Data Analysis | dbt Course](https://www.youtube.com/watch?v=zZVQluYDwYY)
-- 📖 [dbt Documentation](https://docs.getdbt.com/)
-- 📖 [dbt-utils Package](https://github.com/dbt-labs/dbt-utils)
-- 📖 [Snowflake COPY INTO](https://docs.snowflake.com/en/sql-reference/sql/copy-into-table)
-- 📖 [Medallion Architecture](https://www.databricks.com/glossary/medallion-architecture)
-- 📖 [MovieLens Dataset](https://grouplens.org/datasets/movielens/)
-
----
 
 <div align="center">
 
-Made with ❤️ using dbt · Snowflake · AWS · Power BI
+
+## 👨‍💻 Author
+
+**Abdallah Ahmed**
+
+*Data Engineer | Data Analytics & Visualization*
+
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=flat&logo=linkedin&logoColor=white)](https://linkedin.com/in/abdallahahmed7)
+[![GitHub](https://img.shields.io/badge/GitHub-181717?style=flat&logo=github&logoColor=white)](https://github.com/AbdallahAhmed7)
+
 
 </div>
