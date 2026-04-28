@@ -64,9 +64,9 @@ The pipeline follows the **Medallion Architecture** (Bronze → Silver → Gold)
 
 | Layer | Storage | What happens |
 |-------|---------|--------------|
-| 🥉 **Bronze** | AWS S3 + `MOVIELENS.RAW` | Raw files loaded as-is — no transformation, original column names and types |
-| 🥈 **Silver** | `MOVIELENS.STAGING` + `MOVIELENS.ANALYTICS` | Renamed columns, type casting, surrogate keys, business logic |
-| 🥇 **Gold** | `MOVIELENS.ANALYTICS` (marts) | Pre-aggregated, dashboard-ready tables |
+| 🥉 **Bronze** | AWS S3 + `NETFLIX_DB.RAW` | Raw files loaded as-is — no transformation, original column names and types |
+| 🥈 **Silver** | `NETFLIX_DB.STAGING` + `NETFLIX_DB.ANALYTICS` | Renamed columns, type casting, surrogate keys, business logic |
+| 🥇 **Gold** | `NETFLIX_DB.ANALYTICS` (marts) | Pre-aggregated, dashboard-ready tables |
 
 ```
 CSV Files ──► AWS S3 ──► Snowflake RAW ──► dbt Staging + Core ──► dbt Marts ──► Power BI
@@ -107,7 +107,7 @@ Run all steps in a Snowflake Worksheet as `ACCOUNTADMIN`.
   
 ## 🚀 How to Run
 
-**Prerequisites:** Snowflake account with `MOVIELENS.RAW` loaded · dbt Core installed (`pip install dbt-snowflake`) · credentials in `~/.dbt/profiles.yml`
+**Prerequisites:** Snowflake account with `NETFLIX_DB.RAW` loaded · dbt Core installed (`pip install dbt-snowflake`) · credentials in `~/.dbt/profiles.yml`
 
 ```bash
 # Clone the repo
