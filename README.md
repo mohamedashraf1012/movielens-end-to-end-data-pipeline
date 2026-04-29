@@ -1,6 +1,6 @@
 <div align="center">
 
-# movielens-end-to-end-data-pipeline
+# Movielens-End-To-End-Data-Pipeline
 
 ### From raw CSV files to a Power BI dashboard — built with a modern data stack
 
@@ -95,6 +95,7 @@ Run all steps in a Snowflake Worksheet as `ACCOUNTADMIN`.
 
 ## 📊 Power BI Dashboard
 
+<img width="1322" height="886" alt="DASHBOARD" src="https://github.com/user-attachments/assets/9cc8b2c3-324b-4a4c-85f5-d14bb45ae801" />
 
 
 ---
