@@ -1,10 +1,10 @@
 
 version: 2
 sources:
-  - name: netflix
-    database: NETFLIX_DB
+  - name: movielens
+    database: MOVIELENS
     schema: RAW
-    description: 'Raw NETFLIX_DB data loaded from CSV files'
+    description: 'Raw MOVIELENS data loaded from CSV files'
     tables:
       - name: raw_movies
         description: 'Movie titles and genres'
