@@ -28,8 +28,14 @@
       <img width="60" height="60" alt="Microsoft-Power-Bi--Streamline-Svg-Logos" src="https://github.com/user-attachments/assets/bb34e1a7-949b-4183-ad0e-66b034b6e75f" /><br/>
       <sub><b>Power BI</b></sub>
     </td>
+    <td align="center" width="30"></td>
+<td align="center">
+  <img width="60" height="60" alt="apache-airflow-icon" src="https://github.com/user-attachments/assets/8ed72eb0-cbdd-4cb2-81ef-60f5149d9e08" /><br/>
+  <sub><b>Apache Airflow</b></sub>
+</td>
   </tr>
 </table>
+
 
 <br/>
 
@@ -43,10 +49,9 @@
 ---
 
 ## 📌 Overview
-
 This project builds a complete end-to-end data pipeline using the [MovieLens dataset](https://grouplens.org/datasets/movielens/) — a well-known dataset containing 20+ millions of movie ratings, tags, and genome scores.
 
-The pipeline follows the **Medallion Architecture** (Bronze → Silver → Gold), ingesting raw CSV files through **AWS S3** into **Snowflake**, transforming them with **dbt**, and delivering a **Power BI** dashboard for business insights.
+The pipeline follows the **Medallion Architecture** (Bronze → Silver → Gold), ingesting raw CSV files through **AWS S3** into **Snowflake**, transforming them with **dbt**, orchestrating the workflow using **Apache Airflow**, and delivering business insights through a **Power BI** dashboard.
 
 ---
 
@@ -54,10 +59,12 @@ The pipeline follows the **Medallion Architecture** (Bronze → Silver → Gold)
 
 <div align="center">
 
-  <img width="1692" height="930" alt="diagram" src="https://github.com/user-attachments/assets/7c591f0b-a946-41a4-bfba-e59fff65b97f" />
+  
+
+<img width="1692" height="930" alt="ARCHITECTURE DIAGRAM_LAST" src="https://github.com/user-attachments/assets/3e64caad-32ca-4c6e-a795-61e2bc2a8d94" />
 
 
-*End-to-end pipeline: CSV → S3 → Snowflake → dbt → Power BI*
+*End-to-end orchestrated pipeline: CSV → S3 → Snowflake → dbt → Airflow → Power BI*
 
 ---
 
@@ -65,9 +72,9 @@ The pipeline follows the **Medallion Architecture** (Bronze → Silver → Gold)
 
 | Layer | Storage | What happens |
 |-------|---------|--------------|
-| 🥉 **Bronze** | AWS S3 + `MOVIELENS.RAW` | Raw files loaded as-is — no transformation, original column names and types |
-| 🥈 **Silver** | `MOVIELENS.STAGING` + `MOVIELENS.ANALYTICS` | Renamed columns, type casting, surrogate keys, business logic |
-| 🥇 **Gold** | `MOVIELENS.ANALYTICS` (marts) | Pre-aggregated, dashboard-ready tables |
+| 🥉 **Bronze** | AWS S3 + `MOVIELENS.RAW` | Raw CSV files ingested through Airflow and loaded into Snowflake RAW tables |
+| 🥈 **Silver** | `MOVIELENS.STAGING` + `MOVIELENS.ANALYTICS` | dbt staging and core transformations with dimensions, facts, and bridge tables |
+| 🥇 **Gold** | `MOVIELENS.ANALYTICS` (marts) | Business-ready marts powering Power BI dashboards |
 
 ---
 ##  STAR SCHEMA DIAGRAM
@@ -91,6 +98,43 @@ Run all steps in a Snowflake Worksheet as `ACCOUNTADMIN`.
 7. **Create your raw tables** in the RAW schema matching your source file structure
 8. **Load data** using `COPY INTO` for each table from the stage
 
+
+---
+
+## 🌪️ Apache Airflow Orchestration
+
+The entire pipeline is automated using Apache Airflow through a DAG named:
+
+```python
+movielens_pipeline
+```
+
+The DAG runs daily and orchestrates the complete ELT workflow end-to-end.
+
+### Airflow Tasks
+
+| Order | Task | Description |
+|------|------|-------------|
+| 1 | `check_s3_files` | Waits for all required CSV files to exist in AWS S3 |
+| 2 | `load_to_snowflake` | Loads raw CSV files from S3 into Snowflake RAW tables |
+| 3 | `dbt_run_staging` | Builds staging models in Snowflake |
+| 4 | `dbt_run_core` | Builds dimension, fact, and bridge models |
+| 5 | `dbt_run_marts` | Builds Gold mart models |
+| 6 | `dbt_test` | Runs dbt data quality and relationship tests |
+
+### DAG Workflow
+
+<img width="1212" height="160" alt="airflow_dag1" src="https://github.com/user-attachments/assets/98868595-3b64-4c93-9bf0-cd58cd4219ad" />
+
+
+### Scheduling
+
+- Schedule: `@daily`
+- Catchup: `False`
+
+This orchestration layer automates ingestion, transformation, testing, and warehouse loading without manual intervention.
+
+
 ---
 
 
@@ -101,57 +145,100 @@ Run all steps in a Snowflake Worksheet as `ACCOUNTADMIN`.
 ---
 
 
-  
+
 ## 🚀 How to Run
 
-**Prerequisites:** Snowflake account with `MOVIELENS.RAW` loaded · dbt Core installed (`pip install dbt-snowflake`) · credentials in `~/.dbt/profiles.yml`
+### Prerequisites
+
+- Docker & Docker Compose
+- Snowflake account
+- AWS account + S3 bucket
+- Airflow connections configured:
+  - `aws_conn`
+  - `snowflake_conn`
+
+---
+
+### Start the Pipeline
 
 ```bash
-# Clone the repo
+# Clone repository
 git clone https://github.com/AbdallahAhmed7/movielens-end-to-end-data-pipeline.git
+
+# Enter project directory
 cd movielens-end-to-end-data-pipeline
 
+# Enter Airflow directory
+cd airflow
+
+
+# Build custom Airflow image
+docker compose build
+
+# Start Airflow services
+docker compose up -d
+```
+
+Open the Airflow UI at:
+```bash
+http://localhost:8080
+```
+Then trigger the DAG:
+```bash
+movielens_pipeline
+```
+
+
+### Running dbt Manually (Optional)
+
+For local development and debugging, you can run dbt independently:
+
+```bash
 # Install packages
 dbt deps
 
-# Verify connection
+# Verify Snowflake connection
 dbt debug
 
-# Build all models
+# Run models
 dbt run
 
-# Run all tests
+# Run tests
 dbt test
 
-# View documentation and lineage
+# Generate and serve docs
 dbt docs generate && dbt docs serve
 ```
 
-**Full pipeline in one command:**
-```bash
-dbt deps && dbt snapshot && dbt run && dbt test
-```
 
 
 
 ## 📁 Project Structure
 
 ```bash
+
 .
+├── airflow/
+│   ├── dags/
+│   │   └── movielens_pipeline.py
+│   ├── docker-compose.yml
+│   ├── .env
+│   └── Dockerfile
+│
 ├── models/
-│   ├── staging/        # Raw data 
-│   ├── dim/            # Dimension tables 
-│   ├── fct/            # Fact tables 
-│   ├── bridge/         # Bridge tables (handling many-to-many relationships)
-│   ├── mart/           # Final business-ready data models (Gold layer)
-│   ├── sources.yml     # Source definitions (raw data locations)
-│   └── schema.yml      # Tests, documentation, and model metadata
+│   ├── staging/
+│   ├── dim/
+│   ├── fct/
+│   ├── bridge/
+│   ├── mart/
+│   ├── sources.yml
+│   └── schema.yml
 │
-├── powerbi/            # Power BI dashboards and reports
+├── powerbi/
 │
-├── dbt_project.yml     # dbt project configuration
-├── packages.yml        # dbt package dependencies
-├── README.md           # Project documentation
+├── dbt_project.yml
+├── packages.yml
+└── README.md
 ```
 
 
