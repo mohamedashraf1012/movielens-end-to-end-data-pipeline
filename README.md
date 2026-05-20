@@ -144,7 +144,7 @@ This orchestration layer automates ingestion, transformation, testing, and wareh
 
 ## 📊 Power BI Dashboard
 
-<img width="1325" height="885" alt="DASHBOARD" src="https://github.com/user-attachments/assets/720189df-954b-4215-9ef9-d88a2b543233" />
+<img width="1325" height="886" alt="MOVIELENS_Dashboard" src="https://github.com/user-attachments/assets/68808fad-315d-4dfb-94ca-2a9a37caf297" />
 
 ---
 
@@ -251,7 +251,7 @@ dbt docs generate && dbt docs serve
 
 ## 👨‍💻 Author
 
-**Abdallah Ahmed**
+**Abdallah Ahmed, Mohamed Ashraf, Ahmed Hassan**
 
 
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=flat&logo=linkedin&logoColor=white)](https://linkedin.com/in/abdallahahmed7)
