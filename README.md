@@ -56,7 +56,7 @@
 
 This project builds a complete end-to-end data pipeline using the [MovieLens dataset](https://grouplens.org/datasets/movielens/) — a well-known dataset containing 20+ millions of movie ratings, tags, and genome scores.
 
-The pipeline follows the **Medallion Architecture** (Bronze → Silver → Gold), ingesting raw CSV files through **AWS S3** into **Snowflake**, transforming them with **dbt**, and delivering a **Power BI** dashboard for business insights.
+The pipeline follows the **Medallion Architecture** (Bronze → Silver → Gold), ingesting raw CSV files through **AWS S3** into **Snowflake**, transforming them with **dbt**, orchestrating the workflow using **Apache Airflow**, and delivering business insights through a **Power BI** dashboard.
 
 
 ---
